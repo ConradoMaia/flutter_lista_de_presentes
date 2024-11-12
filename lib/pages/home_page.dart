@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_lista_de_presentes/pages/product_registration_page.dart';
 import '../models/gift_item.dart';
 import 'product_detail_page.dart';
 import 'cart_page.dart';
@@ -49,7 +50,7 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: Colors.cyan,
         actions: [
           IconButton(
-            icon: Icon(Icons.shopping_cart),
+            icon: const Icon(Icons.shopping_cart),
             onPressed: () {
               Navigator.push(
                 context,
@@ -58,6 +59,17 @@ class _HomePageState extends State<HomePage> {
                 ),
               );
             },
+          ),
+          IconButton(
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ProductRegistrationPage(onAddItem: (GiftItem ) {  },),
+                ),
+              );
+            },
+            icon: const Icon(Icons.add_circle),
           ),
         ],
       ),
