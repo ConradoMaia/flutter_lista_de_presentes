@@ -1,71 +1,48 @@
 import 'package:flutter/material.dart';
+import '../database/database_helper.dart';
 import '../models/gift_item.dart';
 
-class ProductRegistrationPage extends StatefulWidget {
-  final Function(GiftItem) onAddItem;
+class ProductRegistrationPage extends StatelessWidget {
+  final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _descriptionController = TextEditingController();
+  final TextEditingController _priceController = TextEditingController();
+  String? _imagePath;
 
-  const ProductRegistrationPage({Key? key, required this.onAddItem}) : super(key: key);
+  void saveGiftItem(BuildContext context) async {
+    final item = GiftItem(
+      name: _nameController.text,
+      description: _descriptionController.text,
+      price: double.tryParse(_priceController.text),
+      imagePath: _imagePath,
+    );
 
-  @override
-  _ProductRegistrationPageState createState() => _ProductRegistrationPageState();
-}
-
-class _ProductRegistrationPageState extends State<ProductRegistrationPage> {
-  final _nameController = TextEditingController();
-  final _descriptionController = TextEditingController();
-  final _quantityController = TextEditingController();
-  final _linkController = TextEditingController();
-
-  void _saveProduct() {
-    final name = _nameController.text;
-    final description = _descriptionController.text;
-    final quantity = int.tryParse(_quantityController.text) ?? 0;
-    final link = _linkController.text;
-
-    if (name.isNotEmpty && quantity > 0) {
-      final newItem = GiftItem(
-        id: DateTime.now().toString(),
-        name: name,
-        description: description,
-        imageUrl: 'assets/images/placeholder.png', // Imagem padrão
-        link: link,
-        totalQuantity: quantity,
-        selectedQuantity: 0,
-      );
-
-      widget.onAddItem(newItem);
-      Navigator.pop(context);
-    }
+    await DatabaseHelper.instance.insertGiftItem(item);
+    Navigator.pop(context); // Retorna à tela anterior após salvar
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text('Cadastrar Produto')),
+      appBar: AppBar(title: Text('Cadastro de Produto')),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
             TextField(
               controller: _nameController,
-              decoration: InputDecoration(labelText: 'Nome do Produto'),
+              decoration: InputDecoration(labelText: 'Nome'),
             ),
             TextField(
               controller: _descriptionController,
               decoration: InputDecoration(labelText: 'Descrição'),
             ),
             TextField(
-              controller: _quantityController,
-              decoration: InputDecoration(labelText: 'Quantidade Total'),
+              controller: _priceController,
+              decoration: InputDecoration(labelText: 'Preço'),
               keyboardType: TextInputType.number,
             ),
-            TextField(
-              controller: _linkController,
-              decoration: InputDecoration(labelText: 'Link do Produto'),
-            ),
-            SizedBox(height: 20),
             ElevatedButton(
-              onPressed: _saveProduct,
+              onPressed: () => saveGiftItem(context),
               child: Text('Salvar Produto'),
             ),
           ],

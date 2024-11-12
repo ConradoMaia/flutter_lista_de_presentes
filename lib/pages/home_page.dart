@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_lista_de_presentes/pages/product_registration_page.dart';
+import '../database/database_helper.dart';
 import '../models/gift_item.dart';
-import 'product_detail_page.dart';
 import 'cart_page.dart';
+import 'product_registration_page.dart';
+import 'product_detail_page.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -10,117 +11,165 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  List<GiftItem> items = [
-    GiftItem(
-      id: '1',
-      name: 'Conjunto de Panelas',
-      description: 'Panelas de inox com antiaderente',
-      imageUrl: 'images/placeholder.png', // Imagem local
-      link: 'https://linkparacompra.com',
-      totalQuantity: 5,
-    ),
-    GiftItem(
-      id: '2',
-      name: 'Jogo de Toalhas',
-      description: 'Toalhas de algodão de alta qualidade',
-      imageUrl: 'images/placeholder.png', // Imagem local
-      link: 'https://linkparacompra.com',
-      totalQuantity: 3,
-    ),
-  ];
+  List<GiftItem> _giftItems = [];
 
-  Map<String, int> cart = {};
-
-  void updateCart(String itemId, int quantity) {
+  Future<void> loadGiftItems() async {
+    final items = await DatabaseHelper.instance.fetchAllGiftItems();
     setState(() {
-      if (quantity > 0) {
-        cart[itemId] = quantity;
-      } else {
-        cart.remove(itemId);
-      }
+      _giftItems = items;
     });
+  }
+
+  Future<void> addItemToCart(GiftItem item) async {
+    await DatabaseHelper.instance.insertGiftItem(item);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${item.name} foi adicionado ao carrinho')),
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    loadGiftItems();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: Text('Lista de Presentes', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-        centerTitle: true,
-        backgroundColor: Colors.cyan,
+        title: Text('Lista de Presentes', style: TextStyle(fontSize: 24)),
         actions: [
           IconButton(
-            icon: const Icon(Icons.shopping_cart),
+            icon: Icon(Icons.add),
             onPressed: () {
               Navigator.push(
                 context,
-                MaterialPageRoute(
-                  builder: (context) => CartPage(cart: cart, items: items, onUpdateCart: updateCart),
-                ),
-              );
+                MaterialPageRoute(builder: (context) => ProductRegistrationPage()),
+              ).then((_) => loadGiftItems());
             },
           ),
           IconButton(
+            icon: Icon(Icons.shopping_cart),
             onPressed: () {
               Navigator.push(
                 context,
+                MaterialPageRoute(builder: (context) => CartPage()),
+              );
+            },
+          ),
+        ],
+        backgroundColor: Colors.cyan[700],
+        elevation: 4,
+      ),
+      body: _giftItems.isEmpty
+          ? Center(child: Text('Nenhum presente disponível', style: TextStyle(fontSize: 20, color: Colors.grey[600])))
+          : GridView.builder(
+        padding: EdgeInsets.all(10),
+        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+          childAspectRatio: 0.7,
+        ),
+        itemCount: _giftItems.length,
+        itemBuilder: (context, index) {
+          final item = _giftItems[index];
+          return GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
                 MaterialPageRoute(
-                  builder: (context) => ProductRegistrationPage(onAddItem: (GiftItem ) {  },),
+                  builder: (context) => ProductDetailPage(item: item),
                 ),
               );
             },
-            icon: const Icon(Icons.add_circle),
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.all(10.0),
-        child: ListView.builder(
-          itemCount: items.length,
-          itemBuilder: (context, index) {
-            final item = items[index];
-            return Card(
-              elevation: 5,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-              child: ListTile(
-                contentPadding: EdgeInsets.all(10),
-                leading: ClipRRect(
-                  borderRadius: BorderRadius.circular(50),
-                  child: Image.asset(item.imageUrl, width: 60, height: 60, fit: BoxFit.cover),
-                ),
-                title: Text(
-                  item.name,
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-                ),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(item.description, style: TextStyle(color: Colors.grey[600])),
-                    SizedBox(height: 5),
-                    Text(
-                      'Disponíveis: ${item.totalQuantity - item.selectedQuantity} de ${item.totalQuantity}',
-                      style: TextStyle(color: Colors.cyan),
-                    ),
-                  ],
-                ),
-                trailing: Icon(
-                  item.isAvailable ? Icons.check_circle : Icons.cancel,
-                  color: item.isAvailable ? Colors.green : Colors.red,
-                ),
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => ProductDetailPage(
-                      item: item,
-                      onUpdateCart: updateCart,
-                      cartQuantity: cart[item.id] ?? 0,
+            child: Card(
+              elevation: 4,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Expanded(
+                    child: item.imagePath != null
+                        ? ClipRRect(
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
+                      child: Image.asset(
+                        item.imagePath!,
+                        fit: BoxFit.cover,
+                      ),
+                    )
+                        : Container(
+                      color: Colors.grey[200],
+                      child: Icon(
+                        Icons.image,
+                        size: 60,
+                        color: Colors.grey,
+                      ),
                     ),
                   ),
-                ),
+                  Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                      item.name,
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                        color: Colors.black87,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                    child: Text(
+                      item.description ?? '',
+                      style: TextStyle(
+                        color: Colors.grey[600],
+                        fontSize: 14,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+                    child: Text(
+                      item.price != null
+                          ? 'R\$ ${item.price!.toStringAsFixed(2)}'
+                          : 'Preço indisponível',
+                      style: TextStyle(
+                        color: Colors.cyan[700],
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 5),
+                  Center(
+                    child: ElevatedButton.icon(
+                      icon: Icon(Icons.add_shopping_cart),
+                      label: Text('Adicionar'),
+                      onPressed: () {
+                        addItemToCart(item);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: Size(double.infinity, 36),
+                        backgroundColor: Colors.cyan[700],
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.only(bottomLeft: Radius.circular(10), bottomRight: Radius.circular(10)),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }

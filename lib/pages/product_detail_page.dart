@@ -1,149 +1,118 @@
 import 'package:flutter/material.dart';
+import '../database/database_helper.dart';
 import '../models/gift_item.dart';
-import 'package:url_launcher/url_launcher.dart';
-import 'cart_page.dart';
 
-class ProductDetailPage extends StatefulWidget {
+class ProductDetailPage extends StatelessWidget {
   final GiftItem item;
-  final Function(String, int) onUpdateCart;
-  final int cartQuantity;
 
-  const ProductDetailPage({
-    required this.item,
-    required this.onUpdateCart,
-    required this.cartQuantity,
-  });
+  ProductDetailPage({required this.item});
 
-  @override
-  _ProductDetailPageState createState() => _ProductDetailPageState();
-}
-
-class _ProductDetailPageState extends State<ProductDetailPage> {
-  int selectedQuantity = 1;
+  Future<void> addItemToCart(BuildContext context) async {
+    await DatabaseHelper.instance.insertGiftItem(item);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('${item.name} foi adicionado ao carrinho')),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[100],
       appBar: AppBar(
-        title: Text(widget.item.name, style: TextStyle(fontSize: 24)),
-        backgroundColor: Colors.cyan,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.shopping_cart),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => CartPage(
-                    cart: {widget.item.id: widget.cartQuantity},
-                    items: [widget.item],
-                    onUpdateCart: widget.onUpdateCart,
-                  ),
-                ),
-              );
-            },
-          ),
-        ],
+        title: Text(
+          item.name,
+          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+        ),
+        centerTitle: true,
+        elevation: 4,
+        backgroundColor: Colors.cyan[700],
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Center(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(15),
-                child: Image.asset(
-                  widget.item.imageUrl,
-                  width: 200,
-                  height: 200,
+            Container(
+              height: 250,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                color: Colors.grey[300],
+                image: item.imagePath != null
+                    ? DecorationImage(
+                  image: AssetImage(item.imagePath!),
                   fit: BoxFit.cover,
-                ),
+                )
+                    : null,
               ),
+              child: item.imagePath == null
+                  ? Icon(
+                Icons.image,
+                size: 80,
+                color: Colors.grey[500],
+              )
+                  : null,
             ),
-            SizedBox(height: 20),
-            Text(widget.item.description, style: TextStyle(fontSize: 18)),
-            SizedBox(height: 10),
+            SizedBox(height: 24),
             Text(
-              'Quantidade disponível: ${widget.item.totalQuantity - widget.item.selectedQuantity}',
-              style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+              item.name,
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.bold,
+                color: Colors.black87,
+              ),
+              textAlign: TextAlign.center,
             ),
-            SizedBox(height: 20),
-            Row(
-              children: [
-                Text('Selecionar quantidade:', style: TextStyle(fontSize: 16)),
-                SizedBox(width: 10),
-                DropdownButton<int>(
-                  value: selectedQuantity,
-                  items: List.generate(
-                    (widget.item.totalQuantity - widget.item.selectedQuantity) + 1,
-                        (index) => DropdownMenuItem(
-                      value: index + 1,
-                      child: Text('${index + 1}'),
-                    ),
-                  ),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedQuantity = value!;
-                    });
-                  },
-                ),
-              ],
+            SizedBox(height: 12),
+            Text(
+              item.description ?? 'Nenhuma descrição disponível.',
+              style: TextStyle(
+                fontSize: 18,
+                color: Colors.grey[700],
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 24),
             Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Spacer(),
-                ElevatedButton.icon(
-                  onPressed: () => _openPurchaseLink(widget.item.link),
-                  icon: Icon(Icons.shopping_cart),
-                  label: Text('Visitar link'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.cyan,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: EdgeInsets.symmetric(vertical: 15),
-                  ),
-                ),
-                SizedBox(width: 10),
-                ElevatedButton.icon(
-                  onPressed: widget.item.isAvailable
-                      ? () {
-                    setState(() {
-                      widget.onUpdateCart(widget.item.id, selectedQuantity);
-                    });
-                  }
-                      : null,
-                  icon: Icon(Icons.add_shopping_cart),
-                  label: Text('Adicionar ao Carrinho'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.cyan,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    padding: EdgeInsets.symmetric(vertical: 15),
+                Text(
+                  item.price != null
+                      ? 'R\$ ${item.price!.toStringAsFixed(2)}'
+                      : 'Preço indisponível',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.cyan[700],
                   ),
                 ),
               ],
             ),
-            if (widget.cartQuantity > 0)
-              Padding(
-                padding: const EdgeInsets.only(top: 20),
-                child: Text(
-                  'No carrinho: ${widget.cartQuantity}',
-                  style: TextStyle(fontSize: 16, color: Colors.cyan, fontWeight: FontWeight.bold),
+            Spacer(),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              child: ElevatedButton.icon(
+                icon: Icon(Icons.add_shopping_cart, size: 28),
+                label: Text(
+                  'Adicionar ao Carrinho',
+                  style: TextStyle(fontSize: 20),
+                ),
+                onPressed: () {
+                  addItemToCart(context);
+                },
+                style: ElevatedButton.styleFrom(
+                  padding: EdgeInsets.symmetric(vertical: 14),
+                  backgroundColor: Colors.cyan[700],
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
               ),
+            ),
+            SizedBox(height: 20),
           ],
         ),
       ),
     );
-  }
-
-  void _openPurchaseLink(String link) async {
-    final Uri url = Uri.parse(link);
-
-    if (await canLaunchUrl(url)) {
-      await launchUrl(url);
-    } else {
-      throw 'Could not open $link';
-    }
   }
 }

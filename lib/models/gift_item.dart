@@ -1,29 +1,29 @@
 class GiftItem {
-  final String id;
+  final int? id;
   final String name;
-  final String description;
-  final String imageUrl;
-  final String link;
-  int totalQuantity;
-  int selectedQuantity;
+  final String? description;
+  final double? price;
+  final String? imagePath;
 
-  GiftItem({
-    required this.id,
-    required this.name,
-    required this.description,
-    required this.imageUrl,
-    required this.link,
-    required this.totalQuantity,
-    this.selectedQuantity = 0,
-  });
+  GiftItem({this.id, required this.name, this.description, this.price, this.imagePath});
 
-  bool get isAvailable => selectedQuantity < totalQuantity;
-
-  void select(int quantity) {
-    selectedQuantity = (selectedQuantity + quantity).clamp(0, totalQuantity);
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'price': price,
+      'imagePath': imagePath,
+    };
   }
 
-  void deselect(int quantity) {
-    selectedQuantity = (selectedQuantity - quantity).clamp(0, totalQuantity);
+  factory GiftItem.fromMap(Map<String, dynamic> map) {
+    return GiftItem(
+      id: map['id'],
+      name: map['name'],
+      description: map['description'],
+      price: map['price'],
+      imagePath: map['imagePath'],
+    );
   }
 }
